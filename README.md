@@ -3,6 +3,25 @@
 Uživatelský návod pro práci s aplikací AZ Kvíz.
 Odkaz: [https://alkaacz.github.io/az-kviz](https://alkaacz.github.io/az-kviz).
 
+## Lokální spuštění
+
+V terminálu spusť:
+
+```powershell
+cd D:\git\az-kviz
+python -m http.server 8000
+```
+
+Potom otevři v prohlížeči:
+
+- hlavní stránku: [http://localhost:8000](http://localhost:8000)
+- demo hry: [http://localhost:8000/play.html](http://localhost:8000/play.html)
+- administraci: [http://localhost:8000/admin.html](http://localhost:8000/admin.html)
+
+Server ukončíš v terminálu klávesovou zkratkou `Ctrl+C`.
+
+Stránka `play.html` bez parametru `quizId` používá lokální testovací data ze souboru `mock/sample-quiz.json`. Přihlášení do administrace může vyžadovat povolení adresy `http://localhost:8000` v nastavení Google OAuth.
+
 ## I. Hráč
 
 Hráč má dvě možnosti, jak hru spustit.
