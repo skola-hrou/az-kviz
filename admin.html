@@ -392,6 +392,8 @@
     <div style="margin-top:1rem;display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
       <button class="btn-sm primary" id="btn-add-q">+ Přidat otázku</button>
       <button class="btn-sm primary" id="btn-gen-nasobilka">🔢 Generovat násobilku</button>
+      <button class="btn-sm primary" id="btn-import-csv" title="CSV: otázka;odpověď A;odpověď B;odpověď C;odpověď D;správná (A–D)">📥 Import z CSV</button>
+      <input type="file" id="csv-file" accept=".csv,text/csv" hidden>
       <span id="q-count-info" style="font-size:.85rem;color:#666"></span>
     </div>
   </div>
@@ -434,6 +436,7 @@
   import { CONFIG } from './js/config.js';
   import { initAuth, renderSignInButton, getIdToken, signOut } from './js/auth.js';
   import { listQuizzes, getQuiz, saveQuiz, deleteQuiz } from './js/api.js';
+  import { parseQuestionsCsv } from './js/csv-import.js';
 
   // ── State ───────────────────────────────────────────────────────────────
   let currentQuizId = null;  // null = new quiz
@@ -700,6 +703,33 @@
     addQRow();
     document.getElementById('q-tbody').lastElementChild
       ?.querySelector('.q-text')?.focus();
+  });
+
+  // ── CSV import ──────────────────────────────────────────────────────────
+  document.getElementById('btn-import-csv').addEventListener('click', () => {
+    document.getElementById('csv-file').click();
+  });
+
+  document.getElementById('csv-file').addEventListener('change', async (e) => {
+    const input = e.target;
+    const file = input.files[0];
+    input.value = '';
+    if (!file) return;
+
+    const status = document.getElementById('editor-status');
+    let questions;
+    try {
+      questions = parseQuestionsCsv(await file.text());
+    } catch (err) {
+      status.innerHTML = `<p class="error-msg">Import selhal: ${escHtml(err.message)}</p>`;
+      return;
+    }
+
+    const existing = document.querySelectorAll('#q-tbody tr.q-row-main').length;
+    if (existing && !confirm(`Nahradit stávajících ${existing} otázek ${questions.length} otázkami z CSV?`)) return;
+
+    buildQTable(questions);
+    status.innerHTML = `<div class="save-status save-status--ok"><span class="save-status__dot"></span>Načteno ${questions.length} otázek z CSV. Zkontrolujte je a klikněte na Uložit.</div>`;
   });
 
   // ── Save ────────────────────────────────────────────────────────────────

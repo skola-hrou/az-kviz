@@ -55,6 +55,13 @@ Admin slouží k práci s kvízy: vytvoření, úpravy, uložení, smazání a s
 1. Vyplň název, nastavení a otázky.
 1. Ulož tlačítkem `Uložit`.
 
+1. Import otázek z CSV:
+1. V editoru klikni na `📥 Import z CSV` a vyber soubor.
+1. CSV je v UTF-8, první řádek je hlavička, oddělovač `;` (nebo `,`):
+   `otázka;odpověď A;odpověď B;odpověď C;odpověď D;správná`
+1. Sloupec `správná` obsahuje písmeno `A`–`D`.
+1. Otázky se načtou do tabulky. Zkontroluj je a ulož tlačítkem `Uložit`.
+
 2. Úprava existujícího kvízu:
 1. V seznamu klikni na `Editovat`.
 1. Proveď změny v otázkách nebo nastavení.
