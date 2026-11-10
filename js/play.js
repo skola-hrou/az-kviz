@@ -101,6 +101,7 @@ btnStart.addEventListener('click', () => {
 
 // ── Game ──────────────────────────────────────────────────────────────────
 function startGame(teams) {
+  cancelRebound();
   game = createGame(quiz, teams);
 
   screenSetup.style.display  = 'none';
@@ -196,9 +197,11 @@ function submitAnswer(realIndex, options, correctIndex) {
   const correct = realIndex === correctIndex;
   const buttons = answerGrid.querySelectorAll('.btn-answer');
 
+  // On a first miss the question goes to the opponent, so don't reveal the right answer yet.
+  const revealCorrect = correct || game.getState().rebound;
   buttons.forEach((btn, i) => {
     btn.disabled = true;
-    if (options[i].realIndex === correctIndex) btn.classList.add('correct');
+    if (revealCorrect && options[i].realIndex === correctIndex) btn.classList.add('correct');
     else if (options[i].realIndex === realIndex) btn.classList.add('wrong');
   });
 
@@ -207,7 +210,10 @@ function submitAnswer(realIndex, options, correctIndex) {
     game.answer(realIndex);
     updateUI();
     // Wrong answer → field is black; shortly after, offer the same question to the opponent.
-    if (game.getState().phase === 'answering') setTimeout(openModal, 1200);
+    if (game.getState().phase === 'answering') {
+      const g = game;
+      reboundTimeout = setTimeout(() => { if (g === game) openModal(); }, 1200);
+    }
   }, 900);
 }
 
@@ -234,6 +240,13 @@ function startTimer() {
       submitAnswer(wrongIndex, q.options.map((t, i) => ({ text: t, realIndex: i })), q.correctIndex);
     }
   }, 1000);
+}
+
+let reboundTimeout = null;
+
+function cancelRebound() {
+  clearTimeout(reboundTimeout);
+  reboundTimeout = null;
 }
 
 function stopTimer() {
@@ -263,6 +276,9 @@ btnPlayAgain.addEventListener('click', () => {
 
 btnEndGame.addEventListener('click', () => {
   if (confirm('Opravdu chcete ukončit hru?')) {
+    cancelRebound();
+    stopTimer();
+    modalOverlay.classList.add('hidden');
     screenGame.style.display  = 'none';
     screenSetup.style.display = 'flex';
     screenFinish.classList.add('hidden');
