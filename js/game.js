@@ -32,6 +32,7 @@ export function createGame(quiz, teams) {
   let phase = 'picking';   // 'picking' | 'answering' | 'finished'
   let activeField = null;  // index of selected field
   let winner = null;       // team id or 'TIE'
+  let lastWrong = false;   // true when the current team just answered wrong and picks again
 
   // Pick questions per settings; keep backward compatibility for older quizzes.
   const shouldShuffleQuestions = quiz.settings?.shuffleQuestions ?? true;
@@ -48,7 +49,7 @@ export function createGame(quiz, teams) {
   }
 
   /** Advance turn to next team, skip to 'finished' if no free fields remain. */
-  function nextTurn() {
+  function nextTurn(sameTeam = false) {
     const free = board.some(f => f.owner === null);
     if (!free) {
       phase = 'finished';
@@ -61,7 +62,7 @@ export function createGame(quiz, teams) {
       winner = counts[0].count > counts[1].count ? counts[0].id : 'TIE';
       return;
     }
-    currentTeamIndex = (currentTeamIndex + 1) % teams.length;
+    if (!sameTeam) currentTeamIndex = (currentTeamIndex + 1) % teams.length;
     phase = 'picking';
     activeField = null;
   }
@@ -82,6 +83,7 @@ export function createGame(quiz, teams) {
         phase,
         activeField,
         winner,
+        lastWrong,
         /** Current question (only valid during 'answering' phase). */
         activeQuestion: activeField !== null ? questionForField(activeField) : null,
       };
@@ -96,6 +98,7 @@ export function createGame(quiz, teams) {
       if (phase !== 'picking') return;
       if (board[index].owner !== null) return;
       activeField = index;
+      lastWrong = false;
       phase = 'answering';
     },
 
@@ -118,7 +121,9 @@ export function createGame(quiz, teams) {
         return;
       }
 
-      nextTurn();
+      // Wrong answer: field turns black, the same team is offered another question.
+      lastWrong = !correct;
+      nextTurn(!correct);
     },
   };
 }

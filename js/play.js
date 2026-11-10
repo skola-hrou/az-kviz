@@ -137,7 +137,9 @@ function updateUI() {
   // Current team
   currentTeamEl.textContent  = state.currentTeam.name;
   currentTeamEl.style.color  = state.currentTeam.color;
-  currentHintEl.textContent  = state.phase === 'picking' ? 'Vyberte pole' : 'Odpovídá…';
+  currentHintEl.textContent  = state.phase === 'picking'
+    ? (state.lastWrong ? 'Špatná odpověď – pole zčernalo. Vyberte jinou otázku' : 'Vyberte pole')
+    : 'Odpovídá…';
 
   // Scores
   scoreListEl.innerHTML = state.teams.map(t => `
