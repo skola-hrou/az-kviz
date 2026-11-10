@@ -1,7 +1,7 @@
 # AZ Kvíz
 
 Uživatelský návod pro práci s aplikací AZ Kvíz.
-Odkaz: [https://alkaacz.github.io/az-kviz](https://alkaacz.github.io/az-kviz).
+Odkaz: [https://skola-hrou.github.io/az-kviz/](https://skola-hrou.github.io/az-kviz/).
 
 ## Lokální spuštění
 
@@ -31,10 +31,10 @@ Hráč má dvě možnosti, jak hru spustit.
 1. Hra se načte z ukázkových dat a můžeš si hned vyzkoušet ovládání.
 
 Typicky:
-- na GitHub Pages: [https://alkaacz.github.io/az-kviz/play.html](https://alkaacz.github.io/az-kviz/play.html)
+- na GitHub Pages: [https://skola-hrou.github.io/az-kviz/play.html](https://skola-hrou.github.io/az-kviz/play.html)
 
 2. Hraní přes sdílený odkaz od učitele
-1. Otevři odkaz ve tvaru [https://alkaacz.github.io/az-kviz/play.html?quizId=ID-KVIZU](https://alkaacz.github.io/az-kviz/play.html?quizId=ID-KVIZU).
+1. Otevři odkaz ve tvaru [https://skola-hrou.github.io/az-kviz/play.html?quizId=ID-KVIZU](https://skola-hrou.github.io/az-kviz/play.html?quizId=ID-KVIZU).
 1. Hra načte konkrétní kvíz ze serveru.
 1. Vyber počet týmů, pojmenuj týmy a spusť hru.
 
@@ -44,7 +44,7 @@ Admin slouží k práci s kvízy: vytvoření, úpravy, uložení, smazání a s
 
 ### Přihlášení
 
-1. Otevři [https://alkaacz.github.io/az-kviz/admin.html](https://alkaacz.github.io/az-kviz/admin.html).
+1. Otevři [https://skola-hrou.github.io/az-kviz/admin.html](https://skola-hrou.github.io/az-kviz/admin.html).
 1. Přihlas se Google účtem.
 1. Pokud je účet na whitelistu, zobrazí se seznam kvízů.
 
