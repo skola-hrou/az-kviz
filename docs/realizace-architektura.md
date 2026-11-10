@@ -142,10 +142,10 @@ Bez parametru `quizId` se `play.html` nacte z `mock/sample-quiz.json`.
 
 1. Push na `main` branch.
 1. V GitHub Settings zapnout Pages: source `main/root`.
-1. Produkcni URL: `https://alkaacz.github.io/az-kviz/`.
+1. Produkcni URL: `https://skola-hrou.github.io/az-kviz/`.
 
 Herni odkaz pro zaky:
-`https://alkaacz.github.io/az-kviz/play.html?quizId=ID-KVIZU`
+`https://skola-hrou.github.io/az-kviz/play.html?quizId=ID-KVIZU`
 
 ### 7.4 Troubleshooting
 
