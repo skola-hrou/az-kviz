@@ -32,6 +32,8 @@ export function createGame(quiz, teams) {
   let phase = 'picking';   // 'picking' | 'answering' | 'finished'
   let activeField = null;  // index of selected field
   let winner = null;       // team id or 'TIE'
+  let answeringIndex = 0;  // team currently answering (differs from currentTeamIndex on a rebound)
+  let rebound = false;     // true when the question was handed to the opponent after a wrong answer
 
   // Pick questions per settings; keep backward compatibility for older quizzes.
   const shouldShuffleQuestions = quiz.settings?.shuffleQuestions ?? true;
@@ -62,6 +64,8 @@ export function createGame(quiz, teams) {
       return;
     }
     currentTeamIndex = (currentTeamIndex + 1) % teams.length;
+    answeringIndex = currentTeamIndex;
+    rebound = false;
     phase = 'picking';
     activeField = null;
   }
@@ -78,7 +82,8 @@ export function createGame(quiz, teams) {
           score: board.filter(f => f.owner === t.id).length,
         })),
         board: board.map(f => ({ ...f })),
-        currentTeam: teams[currentTeamIndex],
+        currentTeam: teams[answeringIndex],
+        rebound,
         phase,
         activeField,
         winner,
@@ -96,6 +101,8 @@ export function createGame(quiz, teams) {
       if (phase !== 'picking') return;
       if (board[index].owner !== null) return;
       activeField = index;
+      answeringIndex = currentTeamIndex;
+      rebound = false;
       phase = 'answering';
     },
 
@@ -109,13 +116,24 @@ export function createGame(quiz, teams) {
       const question = questionForField(activeField);
       const correct = question && optionIndex === question.correctIndex;
 
-      board[activeField].owner = correct ? teams[currentTeamIndex].id : 'BLACK';
+      const answeringTeam = teams[answeringIndex];
 
-      // Check win for current team
-      if (correct && checkWin(board, teams[currentTeamIndex].id)) {
-        phase = 'finished';
-        winner = teams[currentTeamIndex].id;
-        return;
+      if (correct) {
+        board[activeField].owner = answeringTeam.id;
+        if (checkWin(board, answeringTeam.id)) {
+          phase = 'finished';
+          winner = answeringTeam.id;
+          return;
+        }
+      } else {
+        // Wrong: the field turns black. On the first miss the same question
+        // goes to the opponent, who can still win the field.
+        board[activeField].owner = 'BLACK';
+        if (!rebound) {
+          rebound = true;
+          answeringIndex = (answeringIndex + 1) % teams.length;
+          return;
+        }
       }
 
       nextTurn();
