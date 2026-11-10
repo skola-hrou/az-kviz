@@ -137,9 +137,7 @@ function updateUI() {
   // Current team
   currentTeamEl.textContent  = state.currentTeam.name;
   currentTeamEl.style.color  = state.currentTeam.color;
-  currentHintEl.textContent  = state.phase === 'picking'
-    ? (state.lastWrong ? 'Špatná odpověď – pole zčernalo. Vyberte jinou otázku' : 'Vyberte pole')
-    : 'Odpovídá…';
+  currentHintEl.textContent  = state.phase === 'picking' ? 'Vyberte pole' : 'Odpovídá…';
 
   // Scores
   scoreListEl.innerHTML = state.teams.map(t => `
@@ -208,6 +206,8 @@ function submitAnswer(realIndex, options, correctIndex) {
     modalOverlay.classList.add('hidden');
     game.answer(realIndex);
     updateUI();
+    // Wrong answer → field is black; shortly after, offer the same question to the opponent.
+    if (game.getState().phase === 'answering') setTimeout(openModal, 1200);
   }, 900);
 }
 
