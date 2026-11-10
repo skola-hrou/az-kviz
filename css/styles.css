@@ -213,6 +213,7 @@ body {
 
 /* Board area */
 .board-area {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -238,6 +239,20 @@ svg g.disabled  { cursor: default; opacity: .6; }
   overflow-y: auto;
   border-left: 1px solid var(--color-border);
 }
+
+.game-palette-control {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  z-index: 1;
+  padding: .45rem .65rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-panel);
+}
+
+.game-palette-control label { white-space: nowrap; }
 
 .side-panel h2 {
   font-size: .8rem;

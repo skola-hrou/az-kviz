@@ -43,7 +43,7 @@ let quiz = null;
 let game = null;
 let timerInterval = null;
 
-initializePalettePicker(document.getElementById('palette-select'));
+initializePalettePicker(document.querySelectorAll('.palette-select'));
 
 // ── Load quiz ─────────────────────────────────────────────────────────────
 async function loadQuiz() {
