@@ -15,6 +15,7 @@ const screenFinish = document.getElementById('screen-finish');
 const teamCountBtns = document.querySelectorAll('.team-count-btns button');
 const teamInputs    = document.getElementById('team-inputs');
 const btnStart      = document.getElementById('btn-start');
+const paletteSelect = document.getElementById('palette-select');
 
 const boardEl       = document.getElementById('board');
 const currentTeamEl = document.getElementById('current-team-name');
@@ -36,11 +37,32 @@ const btnPlayAgain  = document.getElementById('btn-play-again');
 // ── Setup state ───────────────────────────────────────────────────────────
 const DEFAULT_COLORS = ['#1e88e5', '#e53935', '#43a047'];
 const DEFAULT_NAMES  = ['Tým 1', 'Tým 2', 'Tým 3'];
+const PALETTE_STORAGE_KEY = 'az-kviz-palette';
+const PALETTES = new Set(['light', 'warm', 'dark']);
 
 let selectedTeamCount = 2;
 let quiz = null;
 let game = null;
 let timerInterval = null;
+
+function applyPalette(palette) {
+  if (!PALETTES.has(palette)) return;
+  document.documentElement.dataset.palette = palette;
+  try {
+    localStorage.setItem(PALETTE_STORAGE_KEY, palette);
+  } catch (error) {
+    console.error('Nepodařilo se uložit barevné schéma.', error);
+  }
+}
+
+try {
+  const savedPalette = localStorage.getItem(PALETTE_STORAGE_KEY);
+  if (PALETTES.has(savedPalette)) paletteSelect.value = savedPalette;
+} catch (error) {
+  console.error('Nepodařilo se načíst uložené barevné schéma.', error);
+}
+applyPalette(paletteSelect.value);
+paletteSelect.addEventListener('change', () => applyPalette(paletteSelect.value));
 
 // ── Load quiz ─────────────────────────────────────────────────────────────
 async function loadQuiz() {

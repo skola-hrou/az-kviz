@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="cs" data-palette="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +11,16 @@
 <!-- ══ SETUP SCREEN ══════════════════════════════════════════════════════ -->
 <div id="screen-setup">
   <h1>AZ Kvíz</h1>
+
+  <div class="setup-card">
+    <h2><label for="palette-select">Barevné schéma</label></h2>
+    <select id="palette-select" class="palette-select">
+      <option value="light">Světlé</option>
+      <option value="warm">Teplé</option>
+      <option value="dark">Tmavé</option>
+    </select>
+    <p class="palette-hint">Změna ovlivní vzhled hry, ne barvy týmů.</p>
+  </div>
 
   <div class="setup-card">
     <h2>Počet týmů</h2>

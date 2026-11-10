@@ -5,12 +5,55 @@
   --color-a: #1e88e5;
   --color-b: #e53935;
   --color-c: #43a047;
+  --color-accent: #1565c0;
+  --color-accent-hover: #0d47a1;
+  --color-bg: #f0f4f8;
+  --color-panel: #ffffff;
+  --color-card: #e5edf5;
+  --color-text: #1c2733;
+  --color-muted: #526170;
+  --color-border: #c4d0dc;
+  --color-input-bg: #ffffff;
+  --color-hover: #d3e4f5;
+  --color-success-bg: #d7edda;
+  --color-error-bg: #f6dada;
+  --color-disabled-bg: #d7dee5;
+  --color-disabled-text: #66717c;
+  --radius: 8px;
+}
+
+:root[data-palette="warm"] {
+  --color-accent: #8d5a16;
+  --color-accent-hover: #704410;
+  --color-bg: #f4efe4;
+  --color-panel: #fffaf0;
+  --color-card: #eee3ce;
+  --color-text: #30291f;
+  --color-muted: #6f6250;
+  --color-border: #cbbda5;
+  --color-input-bg: #fffdf8;
+  --color-hover: #e5d4b8;
+  --color-success-bg: #dcebd5;
+  --color-error-bg: #f2d9d2;
+  --color-disabled-bg: #e2d9c9;
+  --color-disabled-text: #756d60;
+}
+
+:root[data-palette="dark"] {
+  --color-accent: #1e88e5;
+  --color-accent-hover: #1565c0;
   --color-bg: #1a1a2e;
   --color-panel: #16213e;
   --color-card: #0f3460;
   --color-text: #e0e0e0;
-  --color-muted: #90a4ae;
-  --radius: 8px;
+  --color-muted: #b0bec5;
+  --color-border: #455a64;
+  --color-input-bg: #0a1628;
+  --color-hover: #1e3a5f;
+  --color-success-bg: #1b4d1e;
+  --color-error-bg: #4d1414;
+  --color-disabled-bg: #334;
+  --color-disabled-text: #9aa5ae;
 }
 
 body {
@@ -72,8 +115,23 @@ body {
   transition: border-color .15s, background .15s;
 }
 .team-count-btns button.active {
-  border-color: var(--color-a);
-  background: #1e3a5f;
+  border-color: var(--color-accent);
+  background: var(--color-hover);
+}
+
+.palette-select {
+  width: 100%;
+  padding: .6rem .7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-input-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.palette-hint {
+  color: var(--color-muted);
+  font-size: .85rem;
 }
 
 .team-inputs { display: flex; flex-direction: column; gap: .6rem; }
@@ -94,8 +152,8 @@ body {
   flex: 1;
   padding: .45rem .7rem;
   border-radius: 4px;
-  border: 1px solid #334;
-  background: #0a1628;
+  border: 1px solid var(--color-border);
+  background: var(--color-input-bg);
   color: var(--color-text);
   font-size: .95rem;
 }
@@ -113,7 +171,7 @@ body {
   padding: .7rem 1.5rem;
   border: none;
   border-radius: var(--radius);
-  background: var(--color-a);
+  background: var(--color-accent);
   color: #fff;
   font-size: 1.05rem;
   font-weight: 600;
@@ -122,8 +180,8 @@ body {
   align-self: center;
   width: fit-content;
 }
-.btn-primary:hover { background: #1565c0; }
-.btn-primary:disabled { background: #334; color: #667; cursor: not-allowed; }
+.btn-primary:hover { background: var(--color-accent-hover); }
+.btn-primary:disabled { background: var(--color-disabled-bg); color: var(--color-disabled-text); cursor: not-allowed; }
 
 /* ── Game screen ──────────────────────────────────────────────────────── */
 #screen-game {
@@ -163,7 +221,7 @@ svg g.disabled  { cursor: default; opacity: .6; }
   padding: 1.25rem 1rem;
   gap: 1rem;
   overflow-y: auto;
-  border-left: 1px solid #0a1628;
+  border-left: 1px solid var(--color-border);
 }
 
 .side-panel h2 {
@@ -279,7 +337,7 @@ svg g.disabled  { cursor: default; opacity: .6; }
 
 .btn-answer {
   padding: .7rem .9rem;
-  border: 2px solid #334;
+  border: 2px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-card);
   color: var(--color-text);
@@ -289,9 +347,9 @@ svg g.disabled  { cursor: default; opacity: .6; }
   transition: border-color .12s, background .12s;
   line-height: 1.3;
 }
-.btn-answer:hover:not(:disabled) { border-color: var(--color-a); background: #1e3a5f; }
-.btn-answer.correct { border-color: var(--color-c); background: #1b4d1e; }
-.btn-answer.wrong   { border-color: var(--color-b); background: #4d1414; }
+.btn-answer:hover:not(:disabled) { border-color: var(--color-accent); background: var(--color-hover); }
+.btn-answer.correct { border-color: var(--color-c); background: var(--color-success-bg); }
+.btn-answer.wrong   { border-color: var(--color-b); background: var(--color-error-bg); }
 .btn-answer:disabled { cursor: default; }
 
 /* ── Finish overlay ───────────────────────────────────────────────────── */
