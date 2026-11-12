@@ -61,6 +61,7 @@ Admin slouží k práci s kvízy: vytvoření, úpravy, uložení, smazání a s
    `otázka;odpověď A;odpověď B;odpověď C;odpověď D;správná`
 1. Sloupec `správná` obsahuje písmeno `A`–`D`.
 1. Otázky se načtou do tabulky. Zkontroluj je a ulož tlačítkem `Uložit`.
+1. Tlačítkem `💾 Export do CSV` lze stáhnout úplné otázky ve stejném formátu. Neúplné otázky se přeskočí a URL obrázků se do CSV nezahrnují.
 
 2. Úprava existujícího kvízu:
 1. V seznamu klikni na `Editovat`.
@@ -79,6 +80,7 @@ Admin slouží k práci s kvízy: vytvoření, úpravy, uložení, smazání a s
 
 - Pro hru je potřeba alespoň 28 otázek.
 - Každá otázka musí mít text a 4 odpovědi.
+- Rozpracovaný kvíz se automaticky ukládá v tomto prohlížeči, včetně neúplných otázek. Po návratu do administrace se nabídne obnovení; po úspěšném uložení hotového kvízu se místní koncept odstraní.
 - U ukládání a načítání se zobrazuje průběhový stav (progress + status), aby bylo vidět, že probíhá komunikace s backendem.
 
 ### Význam voleb v nastavení kvízu

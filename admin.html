@@ -171,10 +171,16 @@
     /* Editor */
     #view-editor { display: none; }
     .editor-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
       display: flex;
       align-items: center;
       gap: 1rem;
+      padding: .75rem 0;
       margin-bottom: 1.25rem;
+      background: #f0f2f5;
+      box-shadow: 0 6px 10px -10px #0008;
     }
     .editor-header h2 { font-size: 1.2rem; flex: 1; }
 
@@ -370,6 +376,7 @@
     </div>
 
     <div id="editor-status"></div>
+    <p id="draft-status" aria-live="polite" style="font-size:.8rem;color:#666;margin:.4rem 0"></p>
 
     <div id="questions-wrap">
       <table class="q-table" style="width:100%;background:#fff;border-radius:8px;box-shadow:0 1px 4px #0001">
@@ -393,6 +400,7 @@
       <button class="btn-sm primary" id="btn-add-q">+ Přidat otázku</button>
       <button class="btn-sm primary" id="btn-gen-nasobilka">🔢 Generovat násobilku</button>
       <button class="btn-sm primary" id="btn-import-csv" title="CSV: otázka;odpověď A;odpověď B;odpověď C;odpověď D;správná (A–D)">📥 Import z CSV</button>
+      <button class="btn-sm primary" id="btn-export-csv" title="Exportovat úplné otázky do CSV kompatibilního s importem">💾 Export do CSV</button>
       <input type="file" id="csv-file" accept=".csv,text/csv" hidden>
       <span id="q-count-info" style="font-size:.85rem;color:#666"></span>
     </div>
@@ -440,21 +448,43 @@
 
   // ── State ───────────────────────────────────────────────────────────────
   let currentQuizId = null;  // null = new quiz
+  let currentUserEmail = '';
   let isSaveInProgress = false;
   let saveGuardUntil = 0;
+  let draftSaveTimer = null;
+  let draftRevision = 0;
+  let isApplyingDraft = false;
   const SAVE_RETRIGGER_GUARD_MS = 900;
+  const DRAFT_STORAGE_PREFIX = 'az-kviz-draft:';
 
   // ── Auth ────────────────────────────────────────────────────────────────
   initAuth(CONFIG.OAUTH_CLIENT_ID, onSignIn, onSignOutCb);
   renderSignInButton(document.getElementById('google-btn'));
 
-  document.getElementById('btn-signout').addEventListener('click', () => signOut());
+  document.getElementById('btn-signout').addEventListener('click', () => {
+    flushDraftSave();
+    signOut();
+  });
 
   function onSignIn(profile) {
     document.getElementById('view-login').style.display = 'none';
     document.getElementById('user-info').style.display  = 'flex';
     document.getElementById('user-avatar').src          = profile.picture || '';
     document.getElementById('user-name').textContent    = profile.name || profile.email;
+    currentUserEmail = (profile.email || '').toLowerCase();
+    try {
+      const draft = findLatestDraft();
+      if (draft && confirm(`Našel se rozpracovaný kvíz „${draft.quiz.name || 'Bez názvu'}“ z ${formatDate(new Date(draft.updatedAt).toISOString())}. Chcete pokračovat v jeho úpravě?`)) {
+        restoreDraft(draft);
+        return;
+      }
+    } catch (e) {
+      showList().then(() => {
+        document.getElementById('list-status').innerHTML =
+          `<div class="save-status save-status--error"><span class="save-status__dot"></span>Rozpracovaný kvíz nelze načíst: ${escHtml(e.message)}</div>`;
+      });
+      return;
+    }
     showList();
   }
 
@@ -539,6 +569,7 @@
   };
 
   window.editQuiz = async function(id) {
+    flushDraftSave();
     currentQuizId = id;
     const status = document.getElementById('editor-status');
     status.innerHTML = '<div class="save-status save-status--loading"><span class="save-status__dot"></span>Načítám detail kvízu…</div>';
@@ -546,12 +577,19 @@
     showView('view-editor');
     try {
       const quiz = await getQuiz(id);
+      const draft = loadDraft(id);
+      if (draft && confirm(`Pro tento kvíz existuje rozpracovaná verze z ${formatDate(new Date(draft.updatedAt).toISOString())}. Chcete ji obnovit?`)) {
+        restoreDraft(draft);
+        return;
+      }
       document.getElementById('editor-title').textContent     = quiz.name;
       document.getElementById('quiz-name').value              = quiz.name;
       document.getElementById('shuffle-questions').checked    = quiz.settings?.shuffleQuestions ?? true;
       document.getElementById('shuffle-answers').checked      = quiz.settings?.shuffleAnswers ?? true;
       document.getElementById('time-limit').value             = quiz.settings?.timeLimitSec ?? 0;
       buildQTable(quiz.questions);
+      document.getElementById('draft-status').textContent = '';
+      document.getElementById('draft-status').style.color = '#666';
       status.innerHTML = '';
     } catch (e) {
       status.innerHTML = `<div class="save-status save-status--error"><span class="save-status__dot"></span>Načtení selhalo: ${escHtml(e.message)}</div>`;
@@ -586,6 +624,19 @@
   }
 
   document.getElementById('btn-new-quiz').addEventListener('click', () => {
+    flushDraftSave();
+    let draft;
+    try {
+      draft = loadDraft('new');
+    } catch (e) {
+      document.getElementById('list-status').innerHTML =
+        `<div class="save-status save-status--error"><span class="save-status__dot"></span>Rozpracovaný kvíz nelze načíst: ${escHtml(e.message)}</div>`;
+      return;
+    }
+    if (draft && confirm(`Našel se rozpracovaný kvíz „${draft.quiz.name || 'Bez názvu'}“ z ${formatDate(new Date(draft.updatedAt).toISOString())}. Chcete pokračovat v jeho úpravě?`)) {
+      restoreDraft(draft);
+      return;
+    }
     currentQuizId = null;
     document.getElementById('editor-title').textContent = 'Nový kvíz';
     document.getElementById('quiz-name').value          = '';
@@ -593,11 +644,16 @@
     document.getElementById('shuffle-answers').checked  = true;
     document.getElementById('time-limit').value         = 0;
     document.getElementById('editor-status').innerHTML  = '';
+    document.getElementById('draft-status').textContent = '';
+    document.getElementById('draft-status').style.color = '#666';
     buildQTable([]);
     showView('view-editor');
   });
 
-  document.getElementById('btn-back').addEventListener('click', () => showList());
+  document.getElementById('btn-back').addEventListener('click', () => {
+    flushDraftSave();
+    showList();
+  });
 
   // ── Editor ──────────────────────────────────────────────────────────────
   function buildQTable(questions) {
@@ -606,6 +662,136 @@
     questions.forEach((q, i) => addQRow(q, i));
     updateQCount();
   }
+
+  function getDraftStorageKey(quizId = currentQuizId) {
+    if (!currentUserEmail) return null;
+    return `${DRAFT_STORAGE_PREFIX}${encodeURIComponent(currentUserEmail)}:${quizId || 'new'}`;
+  }
+
+  function parseDraft(raw) {
+    if (!raw) return null;
+    const draft = JSON.parse(raw);
+    if (!draft || draft.version !== 1 || !draft.quiz || !Array.isArray(draft.quiz.questions) || !Number.isFinite(draft.updatedAt)) {
+      throw new Error('Koncept má neplatný formát.');
+    }
+    return draft;
+  }
+
+  function loadDraft(quizId) {
+    const key = getDraftStorageKey(quizId);
+    return key ? parseDraft(localStorage.getItem(key)) : null;
+  }
+
+  function findLatestDraft() {
+    if (!currentUserEmail) return null;
+    const prefix = `${DRAFT_STORAGE_PREFIX}${encodeURIComponent(currentUserEmail)}:`;
+    let latest = null;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(prefix)) continue;
+      const draft = parseDraft(localStorage.getItem(key));
+      if (!latest || draft.updatedAt > latest.updatedAt) latest = draft;
+    }
+    return latest;
+  }
+
+  function restoreDraft(draft) {
+    isApplyingDraft = true;
+    try {
+      const quiz = draft.quiz;
+      currentQuizId = quiz.id || null;
+      document.getElementById('editor-title').textContent = quiz.name || 'Nový kvíz';
+      document.getElementById('quiz-name').value = quiz.name || '';
+      document.getElementById('shuffle-questions').checked = quiz.settings?.shuffleQuestions ?? true;
+      document.getElementById('shuffle-answers').checked = quiz.settings?.shuffleAnswers ?? true;
+      document.getElementById('time-limit').value = quiz.settings?.timeLimitSec ?? 0;
+      buildQTable(quiz.questions);
+      document.getElementById('editor-status').innerHTML = '';
+      document.getElementById('draft-status').textContent =
+        `Obnoven koncept z ${formatDate(new Date(draft.updatedAt).toISOString())}.`;
+      document.getElementById('draft-status').style.color = '#666';
+      showView('view-editor');
+    } finally {
+      isApplyingDraft = false;
+    }
+  }
+
+  function readEditorQuiz() {
+    const questions = [];
+    document.querySelectorAll('#q-tbody tr.q-row-main').forEach(tr => {
+      const text = tr.querySelector('.q-text').value.trim();
+      const imgInput = tr.nextElementSibling?.querySelector('.q-img');
+      const options = [...tr.querySelectorAll('.q-opt')].map(el => el.value.trim());
+      const correctIndex = parseInt(tr.querySelector('.q-correct').value, 10);
+      questions.push({
+        id: tr.dataset.qid || undefined,
+        text,
+        imageUrl: imgInput?.value.trim() || null,
+        options,
+        correctIndex: Number.isInteger(correctIndex) ? correctIndex : 0,
+      });
+    });
+    return {
+      id: currentQuizId || undefined,
+      name: document.getElementById('quiz-name').value.trim(),
+      settings: {
+        shuffleQuestions: document.getElementById('shuffle-questions').checked,
+        shuffleAnswers: document.getElementById('shuffle-answers').checked,
+        timeLimitSec: parseInt(document.getElementById('time-limit').value, 10) || 0,
+      },
+      questions,
+    };
+  }
+
+  function saveDraft() {
+    draftSaveTimer = null;
+    if (isApplyingDraft) return;
+    const key = getDraftStorageKey();
+    if (!key) return;
+    try {
+      const draft = { version: 1, updatedAt: Date.now(), quiz: readEditorQuiz() };
+      localStorage.setItem(key, JSON.stringify(draft));
+      document.getElementById('draft-status').textContent = 'Koncept automaticky uložen v tomto prohlížeči.';
+      document.getElementById('draft-status').style.color = '#666';
+    } catch (e) {
+      document.getElementById('draft-status').textContent =
+        `Koncept se nepodařilo uložit: ${e.message}`;
+      document.getElementById('draft-status').style.color = '#e53935';
+    }
+  }
+
+  function queueDraftSave() {
+    if (isApplyingDraft) return;
+    draftRevision++;
+    window.clearTimeout(draftSaveTimer);
+    draftSaveTimer = window.setTimeout(saveDraft, 300);
+  }
+
+  function flushDraftSave() {
+    if (draftSaveTimer === null) return;
+    window.clearTimeout(draftSaveTimer);
+    saveDraft();
+  }
+
+  function removeDraft(key) {
+    if (!key) return;
+    try {
+      localStorage.removeItem(key);
+      document.getElementById('draft-status').textContent = '';
+      document.getElementById('draft-status').style.color = '#666';
+    } catch (e) {
+      document.getElementById('draft-status').textContent =
+        `Kvíz je uložený, ale koncept se nepodařilo odstranit: ${e.message}`;
+      document.getElementById('draft-status').style.color = '#e53935';
+    }
+  }
+
+  const editor = document.getElementById('view-editor');
+  editor.addEventListener('input', queueDraftSave);
+  editor.addEventListener('change', queueDraftSave);
+  window.addEventListener('pagehide', () => {
+    if (draftSaveTimer !== null) saveDraft();
+  });
 
   function addQRow(q = {}, index) {
     const tbody = document.getElementById('q-tbody');
@@ -678,6 +864,7 @@
       trImg.remove();
       renumberRows();
       updateQCount();
+      queueDraftSave();
     });
     tbody.appendChild(tr);
     tbody.appendChild(trImg);
@@ -701,6 +888,7 @@
 
   document.getElementById('btn-add-q').addEventListener('click', () => {
     addQRow();
+    queueDraftSave();
     document.getElementById('q-tbody').lastElementChild
       ?.querySelector('.q-text')?.focus();
   });
@@ -729,8 +917,52 @@
     if (existing && !confirm(`Nahradit stávajících ${existing} otázek ${questions.length} otázkami z CSV?`)) return;
 
     buildQTable(questions);
+    queueDraftSave();
     status.innerHTML = `<div class="save-status save-status--ok"><span class="save-status__dot"></span>Načteno ${questions.length} otázek z CSV. Zkontrolujte je a klikněte na Uložit.</div>`;
   });
+
+  document.getElementById('btn-export-csv').addEventListener('click', () => {
+    const quiz = readEditorQuiz();
+    const completeQuestions = quiz.questions.filter(q =>
+      q.text && q.options.length === 4 && q.options.every(Boolean) &&
+      Number.isInteger(q.correctIndex) && q.correctIndex >= 0 && q.correctIndex < 4
+    );
+    const skippedCount = quiz.questions.length - completeQuestions.length;
+    const status = document.getElementById('editor-status');
+    if (!completeQuestions.length) {
+      status.innerHTML = '<p class="error-msg">Není tu žádná úplná otázka k exportu.</p>';
+      return;
+    }
+
+    const rows = [
+      ['otázka', 'odpověď A', 'odpověď B', 'odpověď C', 'odpověď D', 'správná'],
+      ...completeQuestions.map(q => [
+        q.text,
+        ...q.options,
+        ['A', 'B', 'C', 'D'][q.correctIndex],
+      ]),
+    ];
+    const csv = '\uFEFF' + rows.map(row => row.map(escapeCsvCell).join(';')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const filename = (quiz.name || 'kviz')
+      .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '-')
+      .trim() || 'kviz';
+    link.href = url;
+    link.download = `${filename}.csv`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    const note = skippedCount
+      ? ` Přeskočeno neúplných otázek: ${skippedCount}.`
+      : '';
+    status.innerHTML = `<div class="save-status save-status--ok"><span class="save-status__dot"></span>Exportováno ${completeQuestions.length} otázek do CSV. URL obrázků se do CSV nezahrnují.${note}</div>`;
+  });
+
+  function escapeCsvCell(value) {
+    return `"${String(value).replace(/"/g, '""')}"`;
+  }
 
   // ── Save ────────────────────────────────────────────────────────────────
   function setSaveUiState(isSaving, options = {}) {
@@ -747,43 +979,36 @@
   document.getElementById('btn-save').addEventListener('click', async () => {
     const now = Date.now();
     if (isSaveInProgress || now < saveGuardUntil) return;
+    window.clearTimeout(draftSaveTimer);
+    saveDraft();
 
     const status = document.getElementById('editor-status');
-    const name   = document.getElementById('quiz-name').value.trim();
+    const quiz = readEditorQuiz();
+    const name = quiz.name;
     if (!name) { status.innerHTML = '<p class="error-msg">Zadejte název kvízu.</p>'; return; }
 
-    const questions = [];
-    let valid = true;
-    document.querySelectorAll('#q-tbody tr.q-row-main').forEach((tr, i) => {
-      const text    = tr.querySelector('.q-text').value.trim();
-      const imgInput = tr.nextElementSibling?.querySelector('.q-img');
-      const imgUrl  = imgInput ? imgInput.value.trim() : '';
-      const opts    = [...tr.querySelectorAll('.q-opt')].map(el => el.value.trim());
-      const correct = parseInt(tr.querySelector('.q-correct').value, 10);
-      if (!text || opts.some(o => !o)) { valid = false; return; }
-      questions.push({ id: tr.dataset.qid || undefined, text, imageUrl: imgUrl || null, options: opts, correctIndex: correct });
-    });
+    if (quiz.questions.some(q => !q.text || q.options.some(o => !o))) {
+      status.innerHTML = '<p class="error-msg">Každá otázka musí mít text a 4 odpovědi.</p>';
+      return;
+    }
+    if (quiz.questions.length < 28) { status.innerHTML = `<p class="error-msg">Potřebujete alespoň 28 otázek (máte ${quiz.questions.length}).</p>`; return; }
 
-    if (!valid) { status.innerHTML = '<p class="error-msg">Každá otázka musí mít text a 4 odpovědi.</p>'; return; }
-    if (questions.length < 28) { status.innerHTML = `<p class="error-msg">Potřebujete alespoň 28 otázek (máte ${questions.length}).</p>`; return; }
-
-    const quiz = {
-      id:        currentQuizId || undefined,
-      name,
-      settings: {
-        shuffleQuestions: document.getElementById('shuffle-questions').checked,
-        shuffleAnswers: document.getElementById('shuffle-answers').checked,
-        timeLimitSec:   parseInt(document.getElementById('time-limit').value, 10) || 0,
-      },
-      questions,
-    };
-
+    const draftKey = getDraftStorageKey(currentQuizId);
+    const saveRevision = draftRevision;
     isSaveInProgress = true;
     status.innerHTML = '<div class="save-status save-status--loading"><span class="save-status__dot"></span>Ukládám kvíz na server…</div>';
     setSaveUiState(true);
     try {
       const result = await saveQuiz(quiz);
       currentQuizId = result.id;
+      if (draftRevision === saveRevision) {
+        removeDraft(draftKey);
+      } else {
+        window.clearTimeout(draftSaveTimer);
+        const currentDraftKey = getDraftStorageKey();
+        if (draftKey !== currentDraftKey) removeDraft(draftKey);
+        saveDraft();
+      }
       status.innerHTML = '<div class="save-status save-status--ok"><span class="save-status__dot"></span>Kvíz byl uložen</div>';
       document.getElementById('editor-title').textContent = name;
     } catch (e) {
@@ -852,6 +1077,7 @@
     }
 
     modalGen.style.display = 'none';
+    queueDraftSave();
   });
 
   /**
